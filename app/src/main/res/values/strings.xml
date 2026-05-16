@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">TravelTracker</string>
+    <string name="notificacions">Notificacions</string>
+    <string name="buscar_aqui">Buscar aqui...</string>
+    <string name="amics">Amics</string>
+    <string name="viatgers">Viatgers</string>
+    <string name="afegir_un_viatge">Afegir un viatge</string>
+    <string name="dest">Destí</string>
+    <string name="data_anada">Data Anada</string>
+    <string name="data_tornada">Data Tornada</string>
+    <string name="fotos_videos">Fotos videos</string>
+    <string name="puntuacio">Puntuacio</string>
+    <string name="frase_estrella">Frase estrella</string>
+    <string name="descripcio">Descripcio</string>
+    <string name="mundial">Mundial</string>
+    <string name="nacional">Nacional</string>
+    <string name="ranking_paissos">Ranking Paissos</string>
+    <string name="mapa_mundial_interactiu">Mapa Mundial Interactiu</string>
+    <string name="estadistiques">Estadistiques</string>
+    <string name="termes_i_condicions">Termes i Condicions</string>
+    <string name="tancar_menu">Tancar menú</string>
+</resources>
