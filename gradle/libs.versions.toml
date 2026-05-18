@@ -13,6 +13,7 @@ navigationCompose = "2.9.7"
 navigationComposeVersion = "2.9.8"
 foundation = "1.11.0"
 foundationLayout = "1.11.0"
+storageKtVersion = "3.6.0"
 uiText = "1.11.0"
 material3 = "1.4.0"
 runtime = "1.11.0"
@@ -49,6 +50,7 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", ve
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
 androidx-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundationVersion" }
 androidx-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiTextVersion" }
+supabase-storage-kt = { module = "io.github.jan-tennert.supabase:storage-kt", version.ref = "storageKtVersion" }
 
 
 [plugins]

@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 
 class UserViewModel : ViewModel() {
     var usuariId by mutableStateOf<Long?>(null)
-        private set
 
     fun setUser(id: Long) {
         usuariId = id

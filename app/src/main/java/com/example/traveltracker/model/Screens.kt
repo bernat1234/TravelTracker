@@ -127,6 +127,7 @@ import com.example.traveltracker.ViatgeViewModel
 import com.example.traveltracker.model.visual.CheckInsertViatge
 import com.example.traveltracker.model.visual.ConversaFeed
 import com.example.traveltracker.model.visual.Notificacio
+import com.example.traveltracker.model.visual.NovaFoto
 import com.example.traveltracker.model.visual.PaisResponse
 import com.example.traveltracker.model.visual.PaisVisitat
 import com.example.traveltracker.model.visual.TarjetaInfo
@@ -809,7 +810,7 @@ fun Pantalla_Afegir(navController: NavController, usuariId: UserViewModel, onBac
                                         .publicUrl(nomFitxer)
 
                                     SupabaseClient.client.from("Foto")
-                                        .insert(mapOf("viatge_id" to viatge.id, "path" to url))
+                                        .insert(NovaFoto(viatge_id = viatge.id, path = url))
                                 }
                             }
 
@@ -2422,11 +2423,7 @@ fun Pantalla_Perfil_Extern(navController: NavController, perfilViewModel: UserVi
                             SupabaseClient.client
                                 .from("Seguidor")
                                 .insert(
-                                    Seguidor(
-                                        usuari_seguidor_id = idPrincipal!!,
-                                        usuari_seguit_id = usuariId!!
-                                    )
-                                )
+                                    Seguidor(usuari_seguidor_id = idPrincipal!!, usuari_seguit_id = usuariId!!))
 
                             withContext(Dispatchers.Main) {
                                 segueix = true
@@ -4093,7 +4090,7 @@ fun Pantalla_Crear_Perfil(navController: NavController, userViewModel: UserViewM
     val paisos = remember { mutableStateOf<List<String>>(emptyList()) }
     val regions = remember { mutableStateOf<List<String>>(emptyList()) }
     val ciutats = remember { mutableStateOf<List<String>>(emptyList()) }
-    val paisSeleccionat = remember { mutableStateOf("") }
+    val paisSeleccionat = remember { mutableStateOf("Spain") }
     val regioSeleccionada = remember { mutableStateOf("") }
     val ciutatSeleccionada = remember { mutableStateOf("") }
     val expandedPais = remember { mutableStateOf(false) }
@@ -4187,17 +4184,6 @@ fun Pantalla_Crear_Perfil(navController: NavController, userViewModel: UserViewM
 
                     val locId = localitzacio?.id?.toLong() ?: return@withContext
 
-
-                    registerViewModel.usuari =
-                        registerViewModel.usuari.copy(
-                            nom = nom.value,
-                            cognom = cognom.value,
-                            data_naixament = dataNaixament.value,
-                            telefon = telefon.value.toLong(),
-                            localitzacio_id = locId,
-                            foto_perfil = fotoPerfil.value
-                        )
-
                     fotoUri.value?.let { uri ->
                         val bytes = context.contentResolver
                             .openInputStream(uri)?.readBytes()
@@ -4211,14 +4197,32 @@ fun Pantalla_Crear_Perfil(navController: NavController, userViewModel: UserViewM
                             val url = SupabaseClient.client.storage
                                 .from("fotos-perfil")
                                 .publicUrl(nomFitxer)
-                            fotoPerfil.value = url 
+                            fotoPerfil.value = url
                         }
                     }
 
-                    SupabaseClient.client
+                    registerViewModel.usuari = registerViewModel.usuari.copy(
+                        nom = nom.value,
+                        cognom = cognom.value,
+                        data_naixament = dataNaixament.value,
+                        telefon = telefon.value.toLong(),
+                        localitzacio_id = locId,
+                        foto_perfil = fotoPerfil.value
+                    )
+
+                    val nouUsuari = SupabaseClient.client
                         .from("Usuari")
-                        .insert((registerViewModel.usuari)
-                        )
+                        .insert(registerViewModel.usuari) {
+                            select()
+                        }
+                        .decodeSingle<Usuari>()
+
+                    userViewModel.usuariId = nouUsuari.id
+
+                    SupabaseClient.client
+                        .from("Seguidor")
+                        .insert(
+                            Seguidor(usuari_seguidor_id = userViewModel.usuariId!!, usuari_seguit_id = userViewModel.usuariId!!))
                     
 
 
@@ -4318,14 +4322,12 @@ fun Pantalla_Crear_Perfil(navController: NavController, userViewModel: UserViewM
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Nom i Cognom
         Text(text = "Nom i Cognoms", color = Color(rgb(96, 106, 129)), fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Nom
             Box(
                 modifier = Modifier
                     .weight(1.5f)
@@ -4357,7 +4359,6 @@ fun Pantalla_Crear_Perfil(navController: NavController, userViewModel: UserViewM
                     )
                 }
             }
-            // Cognom
             Box(
                 modifier = Modifier
                     .weight(1f)
