@@ -945,12 +945,7 @@ fun Pantalla_Afegir(navController: NavController, usuariId: UserViewModel, onBac
                         .padding(14.dp)
                 ) {
 
-                    Text(
-                        text = if (dataAnada.value.isEmpty())
-                            "Seleccionar"
-                        else
-                            dataAnada.value
-                    )
+                    Text(text = if (dataAnada.value.isEmpty()) "Seleccionar" else dataAnada.value)
                 }
             }
 
@@ -4786,14 +4781,7 @@ fun Pantalla_Crear_Perfil(navController: NavController, userViewModel: UserViewM
 
 
 @Composable
-fun ComboBox(
-    valor: String,
-    opcions: List<String>,
-    placeholder: String,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    onSeleccionar: (String) -> Unit
-) {
+fun ComboBox(valor: String, opcions: List<String>, placeholder: String, expanded: Boolean, onExpandedChange: (Boolean) -> Unit, onSeleccionar: (String) -> Unit) {
     Box(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier

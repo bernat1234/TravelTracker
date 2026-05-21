@@ -58,8 +58,6 @@ class EstadistiquesViewModel : ViewModel() {
                     .from("Viatge").select().decodeList<Viatge>()
 
                 val ara = java.time.LocalDate.now()
-
-                // ── Un sol select de localitzacions (només els que apareixen als viatges) ──
                 val locIdsUnics = totsViatges.mapNotNull { it.localitzacio_id }.distinct()
 
                 val localitzacionsViatges = if (locIdsUnics.isNotEmpty()) {
@@ -70,7 +68,6 @@ class EstadistiquesViewModel : ViewModel() {
                         .associateBy { it.id }
                 } else emptyMap()
 
-                // ── Ranking mundial ──────────────────────────────────────────
                 val rankingComplet = totsUsuaris
                     .sortedByDescending { it.paissos ?: 0 }
                     .mapIndexed { i, usuari ->
@@ -82,7 +79,6 @@ class EstadistiquesViewModel : ViewModel() {
                 _rankingMundial.value = rankingComplet.take(5)
                 _posicioUsuariMundial.value = rankingComplet.find { it.usuari.id == usuariId }
 
-                // ── País més visitat mundial ─────────────────────────────────
                 val paisMesVistatEntry = totsViatges
                     .mapNotNull { localitzacionsViatges[it.localitzacio_id]?.pais }
                     .filter { it.isNotBlank() }
@@ -90,7 +86,6 @@ class EstadistiquesViewModel : ViewModel() {
                     .maxByOrNull { it.value }
                 _paisMesVisitat.value = paisMesVistatEntry?.let { PaisVisitat(it.key, it.value) }
 
-                // ── País més visitat aquest mes ──────────────────────────────
                 val paisMesDelMesEntry = totsViatges
                     .filter { v ->
                         v.data_inici?.let {
@@ -106,7 +101,6 @@ class EstadistiquesViewModel : ViewModel() {
                     .maxByOrNull { it.value }
                 _paisMesVistatMes.value = paisMesDelMesEntry?.let { PaisVisitat(it.key, it.value) }
 
-                // ── Ranking amics ────────────────────────────────────────────
                 val seguits = SupabaseClient.client
                     .from("Seguidor")
                     .select { filter { eq("usuari_seguidor_id", usuariId) } }
@@ -125,10 +119,8 @@ class EstadistiquesViewModel : ViewModel() {
                 _rankingAmics.value = rankingAmicsComplet.take(5)
                 _posicioUsuariAmics.value = rankingAmicsComplet.find { it.usuari.id == usuariId }
 
-                // ── Viatges dels amics ───────────────────────────────────────
                 val viatgesAmics = totsViatges.filter { it.usuari_Id in seguits }
 
-                // ── País més visitat amics ───────────────────────────────────
                 val paisAmicsEntry = viatgesAmics
                     .mapNotNull { localitzacionsViatges[it.localitzacio_id]?.pais }
                     .filter { it.isNotBlank() }
@@ -136,7 +128,6 @@ class EstadistiquesViewModel : ViewModel() {
                     .maxByOrNull { it.value }
                 _paisMesVistatAmics.value = paisAmicsEntry?.let { PaisVisitat(it.key, it.value) }
 
-                // ── Països amics per al mapa ─────────────────────────────────
                 _paisosAmics.value = viatgesAmics
                     .mapNotNull { localitzacionsViatges[it.localitzacio_id]?.pais }
                     .filter { it.isNotBlank() }

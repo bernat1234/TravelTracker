@@ -53,7 +53,6 @@ class FotesViewModel : ViewModel() {
                     .from("fotos-viatges")
                     .publicUrl(nomFitxer)
 
-                // Guarda la URL a la taula Foto
                 SupabaseClient.client.from("Foto")
                     .insert(mapOf("viatge_id" to viatgeId, "path" to url))
 
