@@ -60,7 +60,7 @@ dependencies {
     implementation("io.ktor:ktor-client-android:3.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
-    implementation("com.google.firebase:firebase-messaging")  // <-- afegit
+    implementation("com.google.firebase:firebase-messaging")
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.foundation)
