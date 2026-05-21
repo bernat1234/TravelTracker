@@ -1,4 +1,6 @@
 package com.example.traveltracker
+
+import android.Manifest
 import android.app.Activity
 import android.os.Build
 import android.os.Bundle
@@ -19,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -70,9 +73,7 @@ class MainActivity : ComponentActivity() {
             val registerViewModel: RegisterViewModel = viewModel()
             val missatgesViewModel: MissatgesViewModel = viewModel()
             val estadistiquesViewModel: EstadistiquesViewModel = viewModel()
-
-
-
+            val notificacionsViewModel: NotificacionsViewModel = viewModel()
 
 
             val mostrarBars = currentRoute != Screens.Pantalla_Login.name && currentRoute != Screens.Pantalla_Registre.name && currentRoute != Screens.Pantalla_Crear_Perfil.name
@@ -336,7 +337,13 @@ class MainActivity : ComponentActivity() {
                         }
 
                     ) { innerPadding ->
-
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            ActivityCompat.requestPermissions(
+                                this as Activity,
+                                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                                1
+                            )
+                        }
                         NavHost(navController = navController, startDestination = Screens.Pantalla_Login.name, modifier = if (mostrarBars) Modifier.padding(innerPadding) else Modifier
                         ) {
                             composable(Screens.Pantalla_Principal.name) {
@@ -364,7 +371,7 @@ class MainActivity : ComponentActivity() {
                                 Pantalla_Afegir(navController,userViewModel)
                             }
                             composable(Screens.Pantalla_Notificacions.name) {
-                                Pantalla_Notificacions()
+                                Pantalla_Notificacions(navController ,userViewModel, notificacionsViewModel)
                             }
                             composable(route = "${Screens.Pantalla_Chat.name}/{conversaId}") { backStackEntry ->
                                 val conversaId = backStackEntry.arguments?.getString("conversaId")?.toLongOrNull() ?: return@composable
@@ -388,7 +395,8 @@ class MainActivity : ComponentActivity() {
                             composable(route = Screens.Pantalla_Cookies.name) {
                                 Pantalla_Cookies()
                             }
-                            composable(route = "${Screens.Pantalla_Viatge.name}/{viatgeId}") { backStackEntry -> val viatgeId = backStackEntry.arguments?.getString("viatgeId")?.toLong()
+                            composable(route = "${Screens.Pantalla_Viatge.name}/{viatgeId}") {
+                                backStackEntry -> val viatgeId = backStackEntry.arguments?.getString("viatgeId")?.toLong()
                                 viatgeViewModel.viatge_Id = viatgeId
                                 Pantalla_Viatge(navController,userViewModel, viatgeViewModel,missatgesViewModel)
                             }

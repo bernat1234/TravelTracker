@@ -25,6 +25,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import android.Manifest
+import android.app.Activity
+import androidx.core.app.ActivityCompat
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -117,6 +120,7 @@ import androidx.navigation.NavHostController
 import com.example.traveltracker.ComunitatsViewModel
 import com.example.traveltracker.EstadistiquesViewModel
 import com.example.traveltracker.MissatgesViewModel
+import com.example.traveltracker.NotificacionsViewModel
 import com.example.traveltracker.PaisosViewModel
 import com.example.traveltracker.PrincipalViewModel
 import com.example.traveltracker.R
@@ -133,10 +137,14 @@ import com.example.traveltracker.model.visual.PaisVisitat
 import com.example.traveltracker.model.visual.TarjetaInfo
 import com.example.traveltracker.model.visual.UsuariRanking
 import com.example.traveltracker.model.visual.ViatgeFeed
+import com.example.traveltracker.ui.theme.deleteViatgeComplet
+import com.google.firebase.messaging.FirebaseMessaging
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -278,8 +286,13 @@ fun Pantalla_Principal(navController: NavController, usuariId: UserViewModel, pr
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(50))
-                                .background(if (searchMode.value == SearchMode.AMICS && amicsSeleccionat.value == valor) Color(0xFFB5E550) else Color.Transparent)
-                                .clickable { searchMode.value = SearchMode.AMICS
+                                .background(
+                                    if (searchMode.value == SearchMode.AMICS && amicsSeleccionat.value == valor) Color(
+                                        0xFFB5E550
+                                    ) else Color.Transparent
+                                )
+                                .clickable {
+                                    searchMode.value = SearchMode.AMICS
                                     amicsSeleccionat.value = valor
                                 }
                                 .padding(vertical = 8.dp),
@@ -339,10 +352,12 @@ fun Pantalla_Principal(navController: NavController, usuariId: UserViewModel, pr
                 if (usuarisResultat.isEmpty()) {
                     item {
                         Box(
-                            modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 32.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("No s'ha trobat cap usuari", color = Color.Gray, fontSize = 14.sp)
+                            Text(stringResource(R.string.no_s_ha_trobat_cap_usuari), color = Color.Gray, fontSize = 14.sp)
                         }
                     }
                 } else {
@@ -362,7 +377,9 @@ fun Pantalla_Principal(navController: NavController, usuariId: UserViewModel, pr
                 if (searchQuery.value.isNotBlank() && searchMode.value == SearchMode.PAISOS && viatgesResultat.isEmpty()) {
                     item {
                         Box(
-                            modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 32.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("No s'han trobat viatges", color = Color.Gray, fontSize = 14.sp)
@@ -389,14 +406,18 @@ fun Pantalla_Principal(navController: NavController, usuariId: UserViewModel, pr
             }
         }
         Box(
-            modifier = Modifier.fillMaxWidth().background(Color.Transparent),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Transparent),
             contentAlignment = Alignment.Center
         ) {
             FloatingActionButton(
                 onClick = { navController.navigate(Screens.Pantalla_Afegir.name) },
                 shape = CircleShape,
                 containerColor = Color(0xFFB5E550),
-                modifier = Modifier.size(56.dp).zIndex(10f)
+                modifier = Modifier
+                    .size(56.dp)
+                    .zIndex(10f)
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.afegir),
@@ -416,7 +437,7 @@ fun TarjetaUsuari(navController: NavController, usuari: Usuari) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
-            .clickable {navController.navigate("${Screens.Pantalla_Perfil_Extern.name}/${usuari.id}") }
+            .clickable { navController.navigate("${Screens.Pantalla_Perfil_Extern.name}/${usuari.id}") }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -777,6 +798,8 @@ fun Pantalla_Afegir(navController: NavController, usuariId: UserViewModel, onBac
                                 .decodeSingleOrNull<Localitzacio>()
 
                             val locId = localitzacio?.id?.toLong() ?: return@withContext
+                            val dataIniciFormateada = formatejarPerSupabase(dataAnada.value)
+                            val dataFinalFormateada = formatejarPerSupabase(dataTornada.value)
 
 
                             val viatge = SupabaseClient.client
@@ -784,8 +807,8 @@ fun Pantalla_Afegir(navController: NavController, usuariId: UserViewModel, onBac
                                 .insert(
                                     CheckInsertViatge(
                                         usuari_Id = usuariId.usuariId!!,
-                                        data_inici = dataAnada.value,
-                                        data_final = dataTornada.value,
+                                        data_inici = dataIniciFormateada,
+                                        data_final = dataFinalFormateada,
                                         puntuacio = puntuacio.value,
                                         frase_estrella = frase.value,
                                         descripcio = descripcio.value,
@@ -1431,6 +1454,7 @@ fun FilaRanking(ur: UsuariRanking, esTop3: Boolean, destacat: Boolean = false) {
                 .size(40.dp)
                 .clip(CircleShape)
                 .background(Color(0xFFE8F5E9)),
+            
             contentAlignment = Alignment.Center
         ) {
             if (!ur.usuari.foto_perfil.isNullOrBlank()) {
@@ -1442,7 +1466,7 @@ fun FilaRanking(ur: UsuariRanking, esTop3: Boolean, destacat: Boolean = false) {
                 )
             } else {
                 Text(
-                    text = ur.usuari.nom?.firstOrNull()?.uppercase() ?: "?",
+                    text = ur.usuari.nom.firstOrNull()?.uppercase() ?: "?",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF4CAF50)
@@ -1668,11 +1692,13 @@ fun Pantalla_Perfil(navController: NavController, userViewModel: UserViewModel, 
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
+            val mundial = (usuari?.paissos?.div(195f))?.times(100f)
+
             EstadisticaItem(valor = "${viatges.size}", etiqueta = "Viatges")
             VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
             EstadisticaItem(valor = if (usuari != null) { "${usuari?.paissos}/195"} else { "..." }, etiqueta = "Paissos")
             VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
-            EstadisticaItem(valor = if (usuari != null) { "${usuari?.continents}/7"} else { "..." }, etiqueta = "Continents")
+            EstadisticaItem(valor = if (usuari != null) { "${mundial?.toInt()}%"} else { "..." }, etiqueta = "Mundial")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -1756,6 +1782,7 @@ fun Pantalla_Perfil_Estadistica(navController: NavController, userViewModel: Use
     var localitzacio by remember { mutableStateOf<Localitzacio?>(null) }
     var usuari by remember { mutableStateOf<Usuari?>(null) }
     var seguidorsUsuari by remember { mutableStateOf<Map<Long, List<Seguidor>>>(emptyMap()) }
+    var viatgestotal by remember { mutableStateOf<List<Viatge>>(emptyList()) }
     val comunitats by comunitatsViewModel.llista.collectAsState()
     val paisos by paisosViewModel.llista.collectAsState()
     val usuariId = userViewModel.usuariId
@@ -1778,6 +1805,8 @@ fun Pantalla_Perfil_Estadistica(navController: NavController, userViewModel: Use
                         .from("Viatge")
                         .select { filter { eq("usuari_Id", id) } }
                         .decodeList<Viatge>()
+
+                    viatgestotal = viatges
 
                     val idsNeccesaris = (viatges.map { it.localitzacio_id } +
                             listOfNotNull(usuariTemp?.localitzacio_id)).distinct()
@@ -1886,7 +1915,7 @@ fun Pantalla_Perfil_Estadistica(navController: NavController, userViewModel: Use
             VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
             EstadisticaItem(valor = if (usuari != null) { "${usuari?.paissos}/195"} else { "..." }, etiqueta = "Paissos")
             VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
-            EstadisticaItem(valor = if (usuari != null) { "${usuari?.continents}/7"} else { "..." }, etiqueta = "Continents")
+            EstadisticaItem(valor = if (usuari != null) { "${viatgestotal.size}"} else { "..." }, etiqueta = "Viatges")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -1900,9 +1929,10 @@ fun Pantalla_Perfil_Estadistica(navController: NavController, userViewModel: Use
             if (usuari != null) {
 
                 val paissos = usuari!!.paissos?.toFloat()
+                val comunitats = usuari!!.comunitats_autonomes?.toFloat()
                 val mundial = (paissos?.div(195f))?.times(100f)
                 val europeu = (paissos?.div(50f))?.times(100f)
-                val espanya = (paissos?.div(17f))?.times(100f)
+                val espanya = (comunitats?.div(17f))?.times(100f)
 
                 EstadisticaItem(valor = "${mundial?.toInt()}%", etiqueta = "Mundial")
                 VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
@@ -1955,9 +1985,9 @@ fun Pantalla_Perfil_Estadistica(navController: NavController, userViewModel: Use
                 val emoji = paisosViewModel.paisToEmoji(paisNom)
 
                 Box(modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFEEEEEE)),
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFEEEEEE)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = emoji, fontSize = 24.sp)
@@ -2103,20 +2133,15 @@ fun MapaEspanya(comunitats: List<String>) {
             .fillMaxWidth()
             .height(200.dp),
         factory = { ctx ->
-
             MapLibre.getInstance(ctx)
-
             MapView(ctx).apply {
-
                 getMapAsync { map ->
-
                     map.cameraPosition = CameraPosition.Builder()
                         .target(LatLng(40.0, -3.5))
                         .zoom(3.5)
                         .build()
 
                     map.uiSettings.setAllGesturesEnabled(true)
-
                     map.setStyle(
                         Style.Builder().withTransition(TransitionOptions(0, 0))
                     ) { style ->
@@ -2367,11 +2392,13 @@ fun Pantalla_Perfil_Extern(navController: NavController, perfilViewModel: UserVi
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
+            val mundial = (usuari?.paissos?.div(195f))?.times(100f)
+
             EstadisticaItem(valor = "${viatges.size}", etiqueta = "Viatges")
             VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
             EstadisticaItem(valor = if (usuari != null) { "${usuari?.paissos}/195"} else { "..." }, etiqueta = "Paissos")
             VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
-            EstadisticaItem(valor = if (usuari != null) { "${usuari?.continents}/7"} else { "..." }, etiqueta = "Continents")
+            EstadisticaItem(valor = if (usuari != null) { "${mundial?.toInt()}%"} else { "..." }, etiqueta = "Mundial")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -2465,7 +2492,7 @@ fun Pantalla_Perfil_Extern(navController: NavController, perfilViewModel: UserVi
                 items(viatges) { viatge ->
                     val loc = localitzacionsViatges[viatge.id]
                     val persones = personesPerViatge[viatge.id] ?: 0
-                    TarjetaPerfil(
+                    TarjetaPerfil2(
                         info = TarjetaInfo(
                             lloc = if (loc != null) "${loc.ciutat}, ${loc.pais}" else "...",
                             persones = "${persones + 1} persones",
@@ -2487,6 +2514,7 @@ fun Pantalla_Perfil_Estadistica_Extern(navController: NavController, perfilViewM
     var localitzacio by remember { mutableStateOf<Localitzacio?>(null) }
     var usuari by remember { mutableStateOf<Usuari?>(null) }
     var seguidorsUsuari by remember { mutableStateOf<Map<Long, List<Seguidor>>>(emptyMap()) }
+    var viatgestotal by remember { mutableStateOf<List<Viatge>>(emptyList()) }
     var segueix by remember { mutableStateOf(false) }
     val idPrincipal: Long? = perfilViewModel.usuariId
     val comunitats by comunitatsViewModel.llista.collectAsState()
@@ -2520,6 +2548,8 @@ fun Pantalla_Perfil_Estadistica_Extern(navController: NavController, perfilViewM
                         .from("Viatge")
                         .select { filter { eq("usuari_Id", id) } }
                         .decodeList<Viatge>()
+
+                    viatgestotal=viatges
 
                     val idsNecesarios = (viatges.map { it.localitzacio_id } +
                             listOfNotNull(usuariTemp?.localitzacio_id)).distinct()
@@ -2629,7 +2659,7 @@ fun Pantalla_Perfil_Estadistica_Extern(navController: NavController, perfilViewM
             VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
             EstadisticaItem(valor = if (usuari != null) { "${usuari?.paissos}/195"} else { "..." }, etiqueta = "Paissos")
             VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
-            EstadisticaItem(valor = if (usuari != null) { "${usuari?.continents}/7"} else { "..." }, etiqueta = "Continents")
+            EstadisticaItem(valor = if (usuari != null) { "${viatgestotal.size}"} else { "..." }, etiqueta = "Viatges")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -2643,9 +2673,10 @@ fun Pantalla_Perfil_Estadistica_Extern(navController: NavController, perfilViewM
             if (usuari != null) {
 
                 val paissos = usuari!!.paissos?.toFloat()
+                val comunitats = usuari!!.comunitats_autonomes?.toFloat()
                 val mundial = (paissos?.div(195f))?.times(100f)
                 val europeu = (paissos?.div(50f))?.times(100f)
-                val espanya = (paissos?.div(17f))?.times(100f)
+                val espanya = (comunitats?.div(17f))?.times(100f)
 
                 EstadisticaItem(valor = "${mundial?.toInt()}%", etiqueta = "Mundial")
                 VerticalDivider(modifier = Modifier.height(40.dp), color = Color(0xFFE0E0E0))
@@ -2727,16 +2758,8 @@ fun Pantalla_Perfil_Estadistica_Extern(navController: NavController, perfilViewM
         HorizontalDivider(color = Color(0xFFE0E0E0))
         Spacer(modifier = Modifier.height(16.dp))
         Log.i("paisosVisitats", paisos.toString())
-        Text(
-            text = "Paissos Visitats",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
+        Text(text = "Paissos Visitats", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.padding(horizontal = 16.dp))
         Spacer(modifier = Modifier.height(10.dp))
-
 
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
@@ -2816,7 +2839,16 @@ fun Pantalla_Perfil_Estadistica_Extern(navController: NavController, perfilViewM
     }
 
 
+fun formatejarPerSupabase(fecha: String): String {
+    val partes = fecha.split("/")
+    if (partes.size != 3) return fecha
 
+    val dia = partes[0].padStart(2, '0')
+    val mes = partes[1].padStart(2, '0')
+    val any = partes[2]
+
+    return "$any-$mes-$dia"
+}
 
 @Composable
 fun EstadisticaItem(valor: String, etiqueta: String) {
@@ -2827,17 +2859,22 @@ fun EstadisticaItem(valor: String, etiqueta: String) {
 }
 
 @Composable
-fun TarjetaPerfil(info: TarjetaInfo, navController: NavController, viatge_Id: Long, fotoViatge: String? = null  ) {
+fun TarjetaPerfil(info: TarjetaInfo, navController: NavController, viatge_Id: Long, fotoViatge: String? = null) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth(),
-        onClick = { navController.navigate("${Screens.Pantalla_Viatge.name}/$viatge_Id")
+        onClick = {
+            navController.navigate("${Screens.Pantalla_Viatge.name}/$viatge_Id")
         }
-
     ) {
+
         Column {
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2853,47 +2890,75 @@ fun TarjetaPerfil(info: TarjetaInfo, navController: NavController, viatge_Id: Lo
                     )
                 }
             }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.End
             ) {
-                IconButton(onClick = {}) {
-                    Image(
-                        painter = painterResource(id = R.drawable.opcions),
-                        contentDescription = "Opcions",
 
+                Box {
+                    IconButton(onClick = {
+                        menuExpanded = true
+                    }) {
+                        Image(
+                            painter = painterResource(id = R.drawable.opcions),
+                            contentDescription = "Opcions"
                         )
+                    }
+
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+
+                        DropdownMenuItem(
+                            text = { Text("Eliminar viatge") },
+                            onClick = {
+                                menuExpanded = false
+
+                                coroutineScope.launch {
+                                    deleteViatgeComplet(viatge_Id)
+                                    navController.popBackStack()
+                                }
+                            }
+                        )
+                    }
                 }
             }
+
             Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         painter = painterResource(R.drawable.ubicacio),
-                        null,
+                        contentDescription = null,
                         tint = Color.Black,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(text = info.lloc, fontSize = 15.sp, color = Color.Gray, maxLines = 1)
                 }
+
                 Spacer(modifier = Modifier.height(2.dp))
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         painter = painterResource(R.drawable.persones),
-                        null,
+                        contentDescription = null,
                         tint = Color.Black,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(text = info.persones, fontSize = 15.sp, color = Color.Gray)
                 }
+
                 Spacer(modifier = Modifier.height(2.dp))
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         painter = painterResource(R.drawable.calendari),
-                        null,
+                        contentDescription = null,
                         tint = Color.Black,
                         modifier = Modifier.size(18.dp)
                     )
@@ -2901,10 +2966,103 @@ fun TarjetaPerfil(info: TarjetaInfo, navController: NavController, viatge_Id: Lo
                     Text(text = info.dates, fontSize = 15.sp, color = Color.Gray)
                 }
             }
+
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
+
+@Composable
+fun TarjetaPerfil2(info: TarjetaInfo, navController: NavController, viatge_Id: Long, fotoViatge: String? = null) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth(),
+        onClick = {
+            navController.navigate("${Screens.Pantalla_Viatge.name}/$viatge_Id")
+        }
+    ) {
+
+        Column {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(Color(0xFFDDDDDD))
+            ) {
+                if (!fotoViatge.isNullOrBlank()) {
+                    AsyncImage(
+                        model = fotoViatge,
+                        contentDescription = "Foto viatge",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+
+                Box {
+                    IconButton(onClick = {}) {
+                        Image(
+                            painter = painterResource(id = R.drawable.opcions),
+                            contentDescription = "Opcions"
+                        )
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(R.drawable.ubicacio),
+                        contentDescription = null,
+                        tint = Color.Black,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = info.lloc, fontSize = 15.sp, color = Color.Gray, maxLines = 1)
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(R.drawable.persones),
+                        contentDescription = null,
+                        tint = Color.Black,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = info.persones, fontSize = 15.sp, color = Color.Gray)
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(R.drawable.calendari),
+                        contentDescription = null,
+                        tint = Color.Black,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = info.dates, fontSize = 15.sp, color = Color.Gray)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
 
 
 @Composable
@@ -3097,22 +3255,24 @@ fun formatarHora(datahora: String): String {
 
 
 @Composable
-fun Pantalla_Notificacions() {
-    val ahir = listOf(
-        Notificacio("Carla Guitierez", "ha anat de viatge a Llafranc", tenimaImatge = true),
-    )
-    val amistats = listOf(
-        Notificacio("Carla Guitierez", "ha començat a seguirte"),
-        Notificacio("Alba Franci", "ha començat a seguirte"),
-        Notificacio("Georgina Tomas", "ha començat a seguirte"),
-    )
-    val reaccions = listOf(
-        Notificacio(
-            "Jana Sabadell",
-            "li va agradar el teu viatge a Amsterdam",
-            tenimaImatge = true
-        ),
-    )
+fun Pantalla_Notificacions(navController: NavController,usuariId: UserViewModel, notificacionsViewModel: NotificacionsViewModel) {
+    val nouViatge by notificacionsViewModel.nouViatge.collectAsState()
+    val seguidors by notificacionsViewModel.seguidors.collectAsState()
+    val likes by notificacionsViewModel.likes.collectAsState()
+    var usuari by remember { mutableStateOf<Usuari?>(null) }
+
+    LaunchedEffect(Unit) {
+        usuariId.usuariId?.let {
+            notificacionsViewModel.carregarNotificacions(it)
+            val usuariResultat = SupabaseClient.client
+                .from("Usuari")
+                .select() {
+                    filter { eq("id", it) }
+                }
+                .decodeSingleOrNull<Usuari>()
+            usuari = usuariResultat
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -3135,37 +3295,94 @@ fun Pantalla_Notificacions() {
                 modifier = Modifier
                     .size(65.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFCCCCCC))
-            )
+                    .background(Color(0xFFE8F5E9)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (!usuari?.foto_perfil.isNullOrBlank()) {
+                    AsyncImage(
+                        model = usuari!!.foto_perfil,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = usuari?.nom?.firstOrNull()?.uppercase() ?: "?",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4CAF50)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(20.dp))
             Text(
-                text = "Sara Mathew",
-                fontSize = 25.sp,
+                text = "${usuari?.nom ?: ""} ${usuari?.cognom ?: ""}".trim(),
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
         }
-        Spacer(modifier = Modifier.height(20.dp))
-
 
         HorizontalDivider(color = Color(0xFFE0E0E0))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Spacer(modifier = Modifier.height(20.dp))
+        if (nouViatge.isNotEmpty()) {
+            SecciоNotificacions(
+                navController,
+                titol = "Nous viatges",
+                notificacions = nouViatge.map {
+                    Notificacio(
+                        idUsuari = it.usuariOrigen?.id,
+                        nomUsuari = "${it.usuariOrigen?.nom ?: ""} ${it.usuariOrigen?.cognom ?: ""}".trim(),
+                        missatge = "ha publicat un nou viatge",
+                        tenimaImatge = it.fotoViatge != null,
+                        fotoPerfil = it.usuariOrigen?.foto_perfil,
+                        fotoViatge = it.fotoViatge
+                    )
+                }
+            )
+            HorizontalDivider()
+        }
 
-        SecciоNotificacions(titol = "Ahir", notificacions = ahir)
-        Spacer(modifier = Modifier.height(5.dp))
-        HorizontalDivider()
-        SecciоNotificacions(titol = "Amistats", notificacions = amistats)
-        Spacer(modifier = Modifier.height(5.dp))
-        HorizontalDivider()
-        SecciоNotificacions(titol = "Reaccions", notificacions = reaccions)
+        if (seguidors.isNotEmpty()) {
+            SecciоNotificacions(
+                navController,
+                titol = "Amistats",
+                notificacions = seguidors.map {
+                    Notificacio(
+                        idUsuari = it.usuariOrigen?.id,
+                        nomUsuari = "${it.usuariOrigen?.nom ?: ""} ${it.usuariOrigen?.cognom ?: ""}".trim(),
+                        missatge = "ha començat a seguir-te",
+                        fotoPerfil = it.usuariOrigen?.foto_perfil
+                    )
+                }
+            )
+            HorizontalDivider()
+        }
+
+        if (likes.isNotEmpty()) {
+            SecciоNotificacions(
+                navController,
+                titol = "Reaccions",
+                notificacions = likes.map {
+                    Notificacio(
+                        idUsuari = it.usuariOrigen?.id,
+                        nomUsuari = "${it.usuariOrigen?.nom ?: ""} ${it.usuariOrigen?.cognom ?: ""}".trim(),
+                        missatge = "li ha agradat el teu viatge",
+                        tenimaImatge = it.fotoViatge != null,
+                        fotoPerfil = it.usuariOrigen?.foto_perfil,
+                        fotoViatge = it.fotoViatge
+                    )
+                }
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
-fun SecciоNotificacions(titol: String, notificacions: List<Notificacio>) {
+fun SecciоNotificacions(navController: NavController,titol: String, notificacions: List<Notificacio>) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Spacer(modifier = Modifier.height(12.dp))
         Text(
@@ -3176,14 +3393,14 @@ fun SecciоNotificacions(titol: String, notificacions: List<Notificacio>) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         notificacions.forEach { notif ->
-            ItemNotificacio(notif)
+            ItemNotificacio(navController ,notif)
             Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
 
 @Composable
-fun ItemNotificacio(notif: Notificacio) {
+fun ItemNotificacio(navController: NavController,notif: Notificacio) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -3192,8 +3409,29 @@ fun ItemNotificacio(notif: Notificacio) {
             modifier = Modifier
                 .size(42.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFCCCCCC))
-        )
+                .background(Color(0xFFE8F5E9))
+                .clickable { navController.navigate("${Screens.Pantalla_Perfil_Extern.name}/${notif.idUsuari}") },
+            contentAlignment = Alignment.Center
+        ) {
+
+            if (!notif.fotoPerfil.isNullOrBlank()) {
+
+                AsyncImage(
+                    model = notif.fotoPerfil,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+            } else {
+
+                Text(
+                    text = notif.nomUsuari.firstOrNull()?.toString() ?: "?",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
         Spacer(modifier = Modifier.width(10.dp))
 
         Text(
@@ -3218,7 +3456,15 @@ fun ItemNotificacio(notif: Notificacio) {
                     .size(48.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color(0xFFCCCCCC))
-            )
+            ){
+                AsyncImage(
+                    model = notif.fotoViatge,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
+
+
+                )
+            }
         }
     }
 }
@@ -3272,8 +3518,9 @@ fun Pantalla_Chat(conversaId: Long, navController: NavController, Usuari: UserVi
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFE8F5E9)),
-                contentAlignment = Alignment.Center
+                    .background(Color(0xFFE8F5E9))
+                    .clickable { navController.navigate("${Screens.Pantalla_Perfil_Extern.name}/${feed?.usuari?.id}") },
+            contentAlignment = Alignment.Center
             ) {
                 if (!feed?.usuari?.foto_perfil.isNullOrBlank()) {
                     AsyncImage(
@@ -3370,7 +3617,11 @@ fun Pantalla_Chat(conversaId: Long, navController: NavController, Usuari: UserVi
                     )
                     .clickable {
                         if (textEscrit.value.isNotBlank()) {
-                            vm.enviarMissatge(conversaId, textEscrit.value, Usuari.usuariId ?: return@clickable)
+                            vm.enviarMissatge(
+                                conversaId,
+                                textEscrit.value,
+                                Usuari.usuariId ?: return@clickable
+                            )
                             textEscrit.value = ""
                         }
                     },
@@ -3734,8 +3985,25 @@ fun Pantalla_Login(navController: NavController, userViewModel: UserViewModel) {
                                     }
                                     if (usuari != null) {
                                         userViewModel.setUser(usuari.id)
+
+                                        FirebaseMessaging.getInstance().token
+                                            .addOnCompleteListener { task ->
+                                                if (!task.isSuccessful) return@addOnCompleteListener
+                                                val token = task.result
+                                                CoroutineScope(Dispatchers.IO).launch {
+                                                    SupabaseClient.client
+                                                        .from("Usuari")
+                                                        .update(mapOf("fcm_token" to token)) {
+                                                            filter { eq("id", usuari.id) }
+                                                        }
+                                                }
+                                            }
+
+
                                         navController.navigate(Screens.Pantalla_Principal.name) {
-                                            popUpTo(Screens.Pantalla_Login.name) { inclusive = true }
+                                            popUpTo(Screens.Pantalla_Login.name) {
+                                                inclusive = true
+                                            }
                                         }
                                     } else {
                                         errorMissatge.value = "Correu o contrasenya incorrectes"
@@ -3784,12 +4052,21 @@ fun Pantalla_Login(navController: NavController, userViewModel: UserViewModel) {
     }
 }
 
+
+fun passwordEsFuerte(password: String): Boolean {
+    val teLongitud = password.length >= 8
+    val teMayus = password.any { it.isUpperCase() }
+    val teNum = password.any { it.isDigit() }
+
+    return teLongitud && teMayus && teNum
+}
 @Composable
 fun Pantalla_Registre(navController: NavController, registerViewModel: RegisterViewModel) {
     val correu = remember { mutableStateOf("") }
     val contrasenya1 = remember { mutableStateOf("") }
     val contrasenya2 = remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf("") }
     var carregant by remember { mutableStateOf(false) }
     val emailValid = Patterns.EMAIL_ADDRESS.matcher(correu.value).matches()
     val passwordsIguals = contrasenya1.value == contrasenya2.value && contrasenya1.value.isNotEmpty()
@@ -3906,6 +4183,11 @@ fun Pantalla_Registre(navController: NavController, registerViewModel: RegisterV
                     value = contrasenya1.value,
                     onValueChange = {
                         contrasenya1.value = it
+                        passwordError = if (it.isEmpty() || passwordEsFuerte(it)) {
+                            ""
+                        } else {
+                            "La contrasenya ha de tenir mínim 8 caràcters, una majúscula i un número"
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -4014,6 +4296,10 @@ fun Pantalla_Registre(navController: NavController, registerViewModel: RegisterV
 
                     if (!passwordsIguals) {
                         errorText = "Les contrasenyes no coincideixen"
+                        return@clickable
+                    }
+                    if (!passwordEsFuerte(contrasenya1.value)) {
+                        errorText = "La contrasenya no és prou segura"
                         return@clickable
                     }
 
@@ -4400,11 +4686,17 @@ fun Pantalla_Crear_Perfil(navController: NavController, userViewModel: UserViewM
                         .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(50))
                         .clickable {
                             val cal = Calendar.getInstance()
-                            DatePickerDialog(context, { _, y, m, d ->
-                                val mes = (m + 1).toString().padStart(2, '0')
-                                val dia = d.toString().padStart(2, '0')
-                                dataNaixament.value = "$y-$mes-$dia"
-                            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+                            DatePickerDialog(
+                                context,
+                                { _, y, m, d ->
+                                    val mes = (m + 1).toString().padStart(2, '0')
+                                    val dia = d.toString().padStart(2, '0')
+                                    dataNaixament.value = "$y-$mes-$dia"
+                                },
+                                cal.get(Calendar.YEAR),
+                                cal.get(Calendar.MONTH),
+                                cal.get(Calendar.DAY_OF_MONTH)
+                            ).show()
                         }
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
@@ -4574,8 +4866,6 @@ fun Pantalla_Viatge(navController: NavController, userViewModel: UserViewModel, 
     val userId = userViewModel.usuariId
     val context = LocalContext.current
 
-
-
     LaunchedEffect(viatgeId) {
         viatgeId?.let { vId ->
             withContext(Dispatchers.IO) {
@@ -4686,7 +4976,7 @@ fun Pantalla_Viatge(navController: NavController, userViewModel: UserViewModel, 
                             .size(72.dp)
                             .clip(CircleShape)
                             .background(Color(0xFFE8F5E9))
-                             .clickable {navController.navigate("${Screens.Pantalla_Perfil_Extern.name}/${usuari?.id}") },
+                            .clickable { navController.navigate("${Screens.Pantalla_Perfil_Extern.name}/${usuari?.id}") },
                         contentAlignment = Alignment.Center
                     ) {
                         if (!usuari?.foto_perfil.isNullOrBlank()) {

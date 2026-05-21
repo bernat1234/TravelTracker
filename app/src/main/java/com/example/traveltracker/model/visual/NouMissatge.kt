@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class NouMissatge(
     val conversa_id: Long,
-    val usuari_id: Long,           // <-- nou
+    val usuari_id: Long,
     val text: String,
     val datahora: String
 )

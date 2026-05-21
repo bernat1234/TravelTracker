@@ -18,9 +18,9 @@ class RegisterViewModel : ViewModel() {
             telefon = 0,
             localitzacio_id = 0,
             foto_perfil = null,
-            continents = 0,
-            paissos = 0,
-            comunitats_autonomes = 0
+            continents = 1,
+            paissos = 1,
+            comunitats_autonomes = 1
         )
     )
 

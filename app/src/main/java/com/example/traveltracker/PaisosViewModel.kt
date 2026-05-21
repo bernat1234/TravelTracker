@@ -63,7 +63,6 @@ class PaisosViewModel : ViewModel() {
 
     fun paisToEmoji(pais: String): String {
         return when (pais.trim().lowercase()) {
-            // Europe
             "spain" -> "🇪🇸"
             "france" -> "🇫🇷"
             "portugal" -> "🇵🇹"
@@ -112,7 +111,6 @@ class PaisosViewModel : ViewModel() {
             "vatican", "vatican city" -> "🇻🇦"
             "liechtenstein" -> "🇱🇮"
 
-            // Americas
             "united states", "usa", "us" -> "🇺🇸"
             "canada" -> "🇨🇦"
             "mexico" -> "🇲🇽"
@@ -150,7 +148,6 @@ class PaisosViewModel : ViewModel() {
             "dominica" -> "🇩🇲"
             "saint kitts and nevis" -> "🇰🇳"
 
-            // Asia
             "china" -> "🇨🇳"
             "japan" -> "🇯🇵"
             "india" -> "🇮🇳"
@@ -200,7 +197,6 @@ class PaisosViewModel : ViewModel() {
             "brunei" -> "🇧🇳"
             "palestine" -> "🇵🇸"
 
-            // Africa
             "morocco" -> "🇲🇦"
             "egypt" -> "🇪🇬"
             "nigeria" -> "🇳🇬"
@@ -256,7 +252,6 @@ class PaisosViewModel : ViewModel() {
             "malawi" -> "🇲🇼"
             "burundi" -> "🇧🇮"
 
-            // Oceania
             "australia" -> "🇦🇺"
             "new zealand" -> "🇳🇿"
             "papua new guinea" -> "🇵🇬"

@@ -19,4 +19,5 @@
     <string name="estadistiques">Estadistiques</string>
     <string name="termes_i_condicions">Termes i Condicions</string>
     <string name="tancar_menu">Tancar menú</string>
+    <string name="no_s_ha_trobat_cap_usuari">No s\'ha trobat cap usuari</string>
 </resources>

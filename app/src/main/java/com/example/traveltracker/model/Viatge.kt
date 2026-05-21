@@ -7,7 +7,6 @@ import kotlinx.serialization.Serializable
 data class Viatge(
     val id: Long,
     val created_at: String,
-    @SerialName("usuari_Id")
     val usuari_Id: Long? = null,
     val data_inici: String? = null,
     val data_final: String? = null,
